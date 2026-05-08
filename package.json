@@ -1,0 +1,33 @@
+{
+  "name": "postcss-modernizer",
+  "version": "0.0.0",
+  "description": "PostCSS plugin that updates outdated CSS to use new features.",
+  "keywords": ["postcss", "css", "postcss-plugin", "postcss-modernizer"],
+  "scripts": {
+    "unit": "node --test index.test.js",
+    "test": "npm run unit && eslint ."
+  },
+  "author": "Vlad Negara <150728638+VladNegara@users.noreply.github.com>",
+  "license": "MIT",
+  "repository": "VladNegara/postcss-modernizer",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "peerDependencies": {
+    "postcss": "^8.4.27"
+  },
+  "devDependencies": {
+    "eslint": "^8.47.0",
+    "postcss": "^8.4.27"
+  },
+  "eslintConfig": {
+    "parserOptions": {
+      "ecmaVersion": 2017
+    },
+    "env": {
+      "node": true,
+      "es6": true
+    },
+    "extends": ["eslint:recommended"]
+  }
+}
