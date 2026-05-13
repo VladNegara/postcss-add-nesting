@@ -2,7 +2,7 @@
   "compilerOptions": {
     "lib": ["es2018"],
     "target": "es2018",
-    "module": "commonjs",
+    "module": "node20",
     "strict": true,
     "noEmit": true,
     "types": ["node"],
