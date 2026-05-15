@@ -26,7 +26,7 @@ describe('The postcss-add-nesting plugin', () => {
         it('collapses the declaration blocks', async () => {
           await run(
             'p.warning.important {color: green;} p.warning.important {font-size: 13px;}',
-            'p.warning.important {color: green; font-size: 13px;}',
+            'p.warning.important {color: green;font-size: 13px;}',
           );
         });
 
@@ -95,7 +95,7 @@ describe('The postcss-add-nesting plugin', () => {
         it('nests a rule with a compound selector', async () => {
           await run(
             'div#main {display: flex; justify-contents: center;} div {border-radius: 10px;}',
-            'div {&#main {display: flex; justify-contents: center;} border-radius: 10px;}',
+            'div {&#main {display: flex; justify-contents: center;}border-radius: 10px;}',
           );
         });
 
@@ -150,7 +150,7 @@ describe('The postcss-add-nesting plugin', () => {
       it('nests the rules', async() => {
         await run(
           'section > header {padding: 0em 4em;} section {margin: 1em;} section:first-child {border: 1em solid yellow;}',
-          'section {& > header {padding: 0em 4em;} margin: 1em; &:first-child {border: 1em solid yellow;}}',
+          'section {& > header {padding: 0em 4em;}margin: 1em; &:first-child {border: 1em solid yellow;}}',
         );
       });
 
@@ -184,7 +184,7 @@ describe('The postcss-add-nesting plugin', () => {
       it('nests the rules', async () => {
         await run(
           'span.grow {transition: transform 100ms ease-in-out;} span.grow:hover {transform: scale(2);} span.grow {text-decoration: underline;}',
-          'span.grow {transition: transform 100ms ease-in-out; &:hover {transform: scale(2);} text-decoration: underline;}',
+          'span.grow {transition: transform 100ms ease-in-out; &:hover {transform: scale(2);}text-decoration: underline;}',
         );
       });
     });
