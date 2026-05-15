@@ -10,7 +10,7 @@ async function run(input: string, output: string, opts = {}) {
 }
 
 
-describe('The nesting plugin', () => {
+describe('The postcss-add-nesting plugin', () => {
   describe('for rules with unrelated selectors', () => {
     it('leaves the rules unchanged', async () => {
       await run(
