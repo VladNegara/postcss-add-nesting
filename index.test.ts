@@ -65,7 +65,7 @@ describe('The postcss-add-nesting plugin', () => {
         it('nests a rule with a descendant combinator', async () => {
           await run(
             '.card {border-radius: 5px;} .card h1 {font-size: 3rem;}',
-            '.card {border-radius: 5px; & .h1 {font-size: 3rem;}}',
+            '.card {border-radius: 5px; & h1 {font-size: 3rem;}}',
           );
         });
 
