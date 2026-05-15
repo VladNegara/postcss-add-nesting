@@ -79,14 +79,14 @@ describe('The postcss-add-nesting plugin', () => {
         it('nests a rule with a subsequent-sibling combinator', async () => {
           await run(
             'h3 {font-weight: 900;} h3 ~ p {font-weight: 300;}',
-            'h3 {font-weight: 900; & ~ p {font-weight: 300;}',
+            'h3 {font-weight: 900; & ~ p {font-weight: 300;}}',
           );
         });
 
         it('nests a rule with a next-sibling combinator', async () => {
           await run(
             'section {padding: 1em;} section + section {border-top: 1px solid black;}',
-            'section {padding: 1em; & + section {border-top: 1px solid black;}',
+            'section {padding: 1em; & + section {border-top: 1px solid black;}}',
           );
         });
       });
