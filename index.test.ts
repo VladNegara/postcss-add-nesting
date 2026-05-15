@@ -12,11 +12,49 @@ async function run(input: string, output: string, opts = {}) {
 
 describe('The postcss-add-nesting plugin', () => {
   describe('for rules with unrelated selectors', () => {
-    it('leaves the rules unchanged', async () => {
-      await run(
-        'p.note {color: blue;} q:lang(ru) {font-size: 2em;}',
-        'p.note {color: blue;} q:lang(ru) {font-size: 2em;}',
-      );
+    describe('if the selectors are dissimilar', () => {
+      it('leaves the rules unchanged', async () => {
+        await run(
+          'p.note {color: blue;} q:lang(ru) {font-size: 2em;}',
+          'p.note {color: blue;} q:lang(ru) {font-size: 2em;}',
+        );
+      });
+
+      it('leaves whitespace unchanged', async () => {
+        await run (
+          'pre    code  {\n\t\tfont-family: Courier;\t\n}aside.sidebar\n\n{font-weight:\t \n200  \t ;}\t ',
+          'pre    code  {\n\t\tfont-family: Courier;\t\n}aside.sidebar\n\n{font-weight:\t \n200  \t ;}\t ',
+        );
+      });
+    });
+
+    describe('if one selector is a prefix of the other', () => {
+      describe('if the selectors end in similar classes', () => {
+        it('leaves the rules unchanged', async () => {
+          await run(
+            '.card {padding: 1em;} .card-wrapper {border-radius: 2em;}',
+            '.card {padding: 1em;} .card-wrapper {border-radius: 2em;}',
+          );
+        });
+      });
+
+      describe('if the selectors end in similar IDs', () => {
+        it('leaves the rules unchanged', async() => {
+          await run(
+            '#my-container {background-color: black;} #my-container-contents {color: white;}',
+            '#my-container {background-color: black;} #my-container-contents {color: white;}',
+          );
+        });
+      });
+
+      describe('if the longer selector has more simple selectors after the similar class', () => {
+        it('leaves the rules unchanged', async() => {
+          await run(
+            '.confirm-button {margin: 15px;} .confirm-button-label::after {content: "Confirm?";}',
+            '.confirm-button {margin: 15px;} .confirm-button-label::after {content: "Confirm?";}',
+          );
+        });
+      });
     });
   });
 
