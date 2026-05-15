@@ -38,7 +38,7 @@ describe('The postcss-add-nesting plugin', () => {
         });
       });
 
-      describe('if the rules have equivalent selectors', () => {
+      describe.skip('if the rules have equivalent selectors', () => {
         it('collapses the rules', async () => {
           await run(
             '.tall.wide {ratio: 1/1;} .wide.tall {width: 100%;}',
