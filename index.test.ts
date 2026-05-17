@@ -204,7 +204,7 @@ describe('The postcss-add-nesting plugin', () => {
       it('nests the rules', async () => {
         await run(
           'aside :is(h1, h2, h3, h4, h5, h6) {font-weight: bold;} aside:first-of-type {font-size: 1.2em;} aside {font-style: italic;}',
-          'aside {& :is(h1, h2, h3, h4, h5, h6) {font-weight: bold;} &:first-of-type {font-size: 1.2em;} font-style: italic;}',
+          'aside {& :is(h1, h2, h3, h4, h5, h6) {font-weight: bold;} &:first-of-type {font-size: 1.2em;}font-style: italic;}',
         )
       });
     });

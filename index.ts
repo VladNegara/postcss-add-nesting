@@ -130,16 +130,46 @@ function nest(firstRule: Rule, secondRule: Rule): void {
   // If the common prefix is the entire first selector, nest the second rule
   // inside the first.
   if (firstRemainder.length == 0) {
-    secondRemainder.prepend(parser.nesting());
-    secondRule.selector = secondRemainder.toString();
-    firstRule.append(secondRule);
+    // Create the parent rule as a copy of the first rule.
+    let parentRule = firstRule.clone();
+
+    // Create the child rule as a copy of the second rule.
+    let childRule = secondRule.clone();
+    // Construct the selector of the child rule from the remainder.
+    let childSelector = secondRemainder.clone();
+    childSelector.prepend(parser.nesting());
+    childRule.selector = childSelector.toString();
+
+    // Nest the child rule inside the parent rule.
+    parentRule.append(childRule);
+    // Add the parent rule to the tree.
+    secondRule.after(parentRule);
+
+    // Remove the original rules.
+    firstRule.remove();
+    secondRule.remove();
     return;
   }
   // Treat nesting the first rule inside the second analogously.
   if (secondRemainder.length == 0) {
-    firstRemainder.prepend(parser.nesting());
-    firstRule.selector = firstRemainder.toString();
-    secondRule.prepend(firstRule);
+    // Create the parent rule as a copy of the second rule.
+    let parentRule = secondRule.clone();
+
+    // Create the child rule as a copy of the first rule.
+    let childRule = firstRule.clone();
+    // Construct the selector of the child rule from the remainder.
+    let childSelector = firstRemainder.clone();
+    childSelector.prepend(parser.nesting());
+    childRule.selector = childSelector.toString();
+
+    // Nest the child rule inside the parent rule.
+    parentRule.prepend(childRule);
+    // Add the parent rule to the tree.
+    secondRule.after(parentRule);
+
+    // Remove the original rules.
+    firstRule.remove();
+    secondRule.remove();
     return;
   }
 }
