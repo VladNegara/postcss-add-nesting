@@ -119,13 +119,13 @@ function nest(firstRule: Rule, secondRule: Rule): void {
     return;
   }
 
-  let firstSelector = firstAst.nodes[0]
-  let secondSelector = secondAst.nodes[0]
+  let firstSelector = firstAst.first
+  let secondSelector = secondAst.first
   let {
     prefix,
     firstRemainder,
     secondRemainder,
-  } = longestSelectorPrefix(firstSelector, secondSelector)
+  } = longestSelectorPrefix(firstSelector, secondSelector);
 
   // If the common prefix is the entire first selector, nest the second rule
   // inside the first.
