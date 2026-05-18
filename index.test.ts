@@ -11,8 +11,8 @@ async function run(input: string, output: string, opts = {}) {
 
 
 describe('The postcss-add-nesting plugin', () => {
-  describe('for rules with unrelated selectors', () => {
-    describe('if the selectors are dissimilar', () => {
+  describe('for rules that cannot be nested', () => {
+    describe('if the selectors are not similar', () => {
       it('leaves the rules unchanged', async () => {
         await run(
           'p.note {color: blue;} q:lang(ru) {font-size: 2em;}',
@@ -47,7 +47,7 @@ describe('The postcss-add-nesting plugin', () => {
         });
       });
 
-      describe('if the longer selector has more simple selectors after the similar class', () => {
+      describe('if the selectors have a similar class and the second has more simple selectors following it', () => {
         it('leaves the rules unchanged', async() => {
           await run(
             '.confirm-button {margin: 15px;} .confirm-button-label::after {content: "Confirm?";}',
@@ -58,8 +58,33 @@ describe('The postcss-add-nesting plugin', () => {
     });
   });
 
-  describe('for two rules with related selectors', () => {
+  describe('for two rules that can be nested', () => {
     describe('if the rules are consecutive', () => {
+      describe('if the rules are inside identical at-rules', () => {
+        it('collapses @media at-rules', async () => {
+          await run(
+            '@media (hover: hover) {a:hover {border: 1px solid red;}} @media (hover: hover) {p q:hover {font-style: italic;}}',
+            '@media (hover: hover) {a:hover {border: 1px solid red;} p q:hover {font-style: italic;}}',
+          );
+        });
+      });
+
+      describe('if both rules are inside at-rules and the second at-rule can be nested inside the first', () => {
+        it('nests @media at-rules', async () => {
+          await run(
+            '@media (orientation: portrait) {body {max-width: 90%;}} @media (hover: none) and (orientation: portrait) {button {padding: 1em;}}',
+            '@media (orientation: portrait) {body {max-width: 90%;} @media (hover: none) {button {padding: 1em;}}}',
+          );
+        });
+
+        it('nests @container at-rules', async () => {
+          await run(
+            '@container (scrollable: block-end) {heading::after {content: "scroll down";}} @container (scrollable: block-end) and (block-size > 600px) {p em {color: blue;}}',
+            '@container (scrollable: block-end) {heading::after {content: "scroll down";} @container (block-size > 600px) {p em {color: blue;}}',
+          );
+        });
+      });
+
       describe('if the rules have identical selectors', () => {
         it('collapses the declaration blocks', async () => {
           await run(
@@ -73,6 +98,90 @@ describe('The postcss-add-nesting plugin', () => {
             'a.external {background-color: blue; font-style: italic;} a.external {background-color: yellow;}',
             'a.external {font-style: italic; background-color: yellow;}',
           )
+        });
+
+        describe('if the first rule is inside an at-rule', () => {
+          it('nests a rule in an @media rule', async () => {
+            await run(
+              '@media (width > 1000px) {h1 {font-size: 1.5rem;}} h1 {color: rebeccapurple;}',
+              'h1 {@media (width > 1000px) {font-size: 1.5rem;} color: rebeccapurple;}',
+            );
+          });
+
+          it('nests a rule in an @supports rule', async () => {
+            await run(
+              '@supports (transform-origin: 5% 5%) {div.crooked {transform-origin: 5% 5%; transform: rotate(5deg;);}} div.crooked {font-size: 14px;}',
+              'div.crooked {@supports (transform-origin: 5% 5%) {transform-origin: 5% 5%; transform: rotate(5deg;);} font-size: 14px;}',
+            );
+          });
+
+          it('nests a rule in an @layer rule', async () => {
+            await run(
+              '@layer utilities {p {padding: 15px;}} p {padding-top: 1em;}',
+              'p {@layer utilities {padding: 15px;} padding-top: 1em;}',
+            );
+          });
+
+          it('nests a rule in an @container rule', async () => {
+            await run(
+              '@container (min-width 400px;) {h2 {white-space: nowrap;}} h2 {font-size: 3em;}',
+              'h2 {@container (min-width 400px;) {white-space: nowrap;} font-size: 3em;}',
+            );
+          });
+
+          it('nests a rule in an @starting-style rule', async () => {
+            // Note: this is useless CSS.
+            await run(
+              '@starting-style {#target {background-color: transparent;}} #target {background-color: goldenrod;}',
+              '#target {@starting-style {background-color: transparent;} background-color: goldenrod;}',
+            );
+          });
+        });
+
+        describe('if the second rule is inside an at-rule', () => {
+          it('nests a rule in an @media rule', async () => {
+            await run(
+              'main {display: flex;} @media (orientation: portrait) {main {flex-direction: column;}}',
+              'main {display: flex; @media (orientation: portrait) {flex-direction: column;}}',
+            );
+          });
+
+          it('nests a rule in an @supports rule', async () => {
+            await run(
+              'aside {font-style: italic;} @supports font-tech(variations) {aside {font-variation-settings: "ital" 0.5;}}',
+              'aside {font-style: italic; @supports font-tech(variations) {font-variation-settings: "ital" 0.5;}}',
+            );
+          });
+
+          it('nests a rule in an @layer rule', async () => {
+            await run(
+              'h1, h2, h3 {font-family: Calibri;} @layer {h1, h2, h3 {font-size: 20px;}}',
+              'h1, h2, h3 {font-family: Calibri; @layer {font-size: 20px;}}',
+            );
+          });
+
+          it('nests a rule in an @container rule', async () => {
+            await run(
+              'div {display: flex; flex-direction: row;} @container (width < 600px) {div {flex-direction: column;}}',
+              'div {display: flex; flex-direction: row; @container (width < 600px) {flex-direction: column;}}',
+            )
+          });
+
+          it('nests a rule in an @starting-style rule', async () => {
+            await run(
+              '[popover]:popover-open {opacity: 1;} @starting-style {[popover]:popover-open {opacity: 0;}}',
+              '[popover]:popover-open {opacity: 1; @starting-style {opacity: 0;}}',
+            )
+          });
+        });
+
+        describe('if both rules are inside identical at-rules', () => {
+          it('collapses the at-rules and the rules', async () => {
+            await run(
+              '@media (hover: hover) {button:hover {border-radius: 4px;}} @media (hover: hover) {button:hover {border-color: white;}}',
+              '@media (hover: hover) {button:hover {border-radius: 4px; border-color: white;}}',
+            );
+          });
         });
       });
 
@@ -92,7 +201,7 @@ describe('The postcss-add-nesting plugin', () => {
         });
       });
 
-      describe('if the first selector is a parent of the second', () => {
+      describe('if the first selector is a prefix of the second', () => {
         it('nests a rule with a compound selector', async () => {
           await run(
             'p.note {font-style: italic;} p.note.important {color: red;}',
@@ -129,7 +238,7 @@ describe('The postcss-add-nesting plugin', () => {
         });
       });
 
-      describe('if the first selector is a child of the second', () => {
+      describe('if the second selector is a prefix of the first', () => {
         it('nests a rule with a compound selector', async () => {
           await run(
             'div#main {display: flex; justify-contents: center;} div {border-radius: 10px;}',
