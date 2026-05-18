@@ -253,7 +253,7 @@ describe('The postcss-add-nesting plugin', () => {
     describe('if each rule is in an at-rule', () => {
       describe('if the at-rules are identical', () => {
         describe('if the selectors are not related', () => {
-          it('collapses @media at-rules', async () => {
+          it('collapses @media rules', async () => {
             await run(
               '@media (hover: hover) {a:hover {border: 1px solid red;}} @media (hover: hover) {p q:hover {font-style: italic;}}',
               '@media (hover: hover) {a:hover {border: 1px solid red;} p q:hover {font-style: italic;}}',
@@ -273,14 +273,14 @@ describe('The postcss-add-nesting plugin', () => {
 
       describe('if the second at-rule can be nested inside the first', () => {
         describe('if the selectors are unrelated', () => {
-          it('nests @media at-rules', async () => {
+          it('nests @media rules', async () => {
             await run(
               '@media (orientation: portrait) {body {max-width: 90%;}} @media (hover: none) and (orientation: portrait) {button {padding: 1em;}}',
               '@media (orientation: portrait) {body {max-width: 90%;} @media (hover: none) {button {padding: 1em;}}}',
             );
           });
 
-          it('nests @container at-rules', async () => {
+          it('nests @container rules', async () => {
             await run(
               '@container (scrollable: block-end) {heading::after {content: "scroll down";}} @container (scrollable: block-end) and (block-size > 600px) {p em {color: blue;}}',
               '@container (scrollable: block-end) {heading::after {content: "scroll down";} @container (block-size > 600px) {p em {color: blue;}}',
