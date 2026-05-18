@@ -33,6 +33,9 @@ function equivalent(firstNode: Node, secondNode: Node): boolean {
       if (secondNode.type != 'pseudo') {
         return false;
       }
+      if (firstNode.value != secondNode.value) {
+        return false;
+      }
       return allEquivalent(firstNode.nodes, secondNode.nodes);
     case 'nesting':
       return secondNode.type == 'nesting';
