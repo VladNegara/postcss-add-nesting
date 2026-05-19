@@ -22,11 +22,13 @@
     "postcss": "^8.4.27"
   },
   "devDependencies": {
+    "@jest/globals": "^30.4.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.7.0",
+    "@types/node": "^25.9.0",
     "eslint": "^8.47.0",
     "postcss": "^8.4.27",
-    "ts-jest": "^29.4.9"
+    "ts-jest": "^29.4.10",
+    "typescript": "^6.0.3"
   },
   "eslintConfig": {
     "parserOptions": {
@@ -41,7 +43,6 @@
     ]
   },
   "dependencies": {
-    "@jest/globals": "^30.4.1",
     "postcss-selector-parser": "^7.1.1"
   }
 }
