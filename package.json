@@ -25,6 +25,7 @@
     "@jest/globals": "^30.4.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.9.0",
+    "dedent": "^1.7.2",
     "eslint": "^8.47.0",
     "postcss": "^8.4.27",
     "ts-jest": "^29.4.10",
