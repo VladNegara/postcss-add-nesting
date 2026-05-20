@@ -142,6 +142,7 @@ function nest(firstRule: Rule, secondRule: Rule): void {
     let childSelector = secondRemainder.clone();
     childSelector.prepend(parser.nesting());
     childRule.selector = childSelector.toString();
+    childRule.cleanRaws();
 
     // Nest the child rule inside the parent rule.
     parentRule.append(childRule);
@@ -164,6 +165,7 @@ function nest(firstRule: Rule, secondRule: Rule): void {
     let childSelector = firstRemainder.clone();
     childSelector.prepend(parser.nesting());
     childRule.selector = childSelector.toString();
+    childRule.cleanRaws();
 
     // Nest the child rule inside the parent rule.
     parentRule.prepend(childRule);
