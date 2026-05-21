@@ -1,11 +1,13 @@
-import type { PluginCreator, Rule } from 'postcss';
+import { AtRule, Container, Declaration, PluginCreator, Rule } from 'postcss';
 
 import parser from 'postcss-selector-parser';
-import type { Node, Selector } from 'postcss-selector-parser';
+import type { Node, Root, Selector } from 'postcss-selector-parser';
 
 const processor = parser()
 
-export type PluginOptions = {};
+function parseSelector(selector: string | Rule): Root {
+  return processor.astSync(selector);
+}
 
 function equivalent(firstNode: Node, secondNode: Node): boolean {
   switch(firstNode.type) {
@@ -105,25 +107,75 @@ function longestSelectorPrefix(
   return { prefix, firstRemainder, secondRemainder };
 }
 
-function nest(firstRule: Rule, secondRule: Rule): void {
-  let firstAst = processor.astSync(firstRule)
-  let secondAst = processor.astSync(secondRule)
+function onlyChild(containerNode: Container): AtRule | Declaration | Rule | undefined {
+  if (!containerNode.nodes) {
+    return undefined;
+  }
 
-  // If the two rules have the same selector, simply merge their declaration
+  let result: AtRule | Declaration | Rule | undefined = undefined
+  for (let child of containerNode.nodes) {
+    if (child.type != "comment") {
+      if (result) {
+        return undefined;
+      }
+      result = child;
+    }
+  }
+  return result;
+}
+
+interface NoNestingDecision {
+  type: "none";
+}
+
+interface NestFirstDecision {
+  type: "first";
+  parentSelector: Selector;
+  childSelector: Selector;
+}
+
+interface NestSecondDecision {
+  type: "second";
+  parentSelector: Selector;
+  childSelector: Selector;
+}
+
+interface NestBothDecision {
+  type: "both";
+  parentSelector: Selector;
+  firstChildSelector: Selector;
+  secondChildSelector: Selector;
+}
+
+interface CollapseDecision {
+  type: "collapse";
+}
+
+type NestingDecision =
+  | NoNestingDecision
+  | NestFirstDecision
+  | NestSecondDecision
+  | NestBothDecision
+  | CollapseDecision
+
+function decideNesting(first: string | Rule, second: string | Rule): NestingDecision {
+  let firstAst = parseSelector(first);
+  let secondAst = parseSelector(second);
+
+  // If the two rules have the same selector, simply collapse their declaration
   // blocks.
   if (equivalent(firstAst, secondAst)) {
-    firstRule.append(secondRule.nodes);
-    secondRule.remove();
-    return;
+    return { type: "collapse" }
   }
 
   // Only single-selector rules can be nested.
   if (firstAst.length != 1 || secondAst.length != 1) {
-    return;
+    return { type: "none" };
   }
 
   let firstSelector = firstAst.first
   let secondSelector = secondAst.first
+
   let {
     prefix,
     firstRemainder,
@@ -133,51 +185,173 @@ function nest(firstRule: Rule, secondRule: Rule): void {
   // If the common prefix is the entire first selector, nest the second rule
   // inside the first.
   if (firstRemainder.length == 0) {
-    // Create the parent rule as a copy of the first rule.
-    let parentRule = firstRule.clone();
-
-    // Create the child rule as a copy of the second rule.
-    let childRule = secondRule.clone();
-    // Construct the selector of the child rule from the remainder.
-    let childSelector = secondRemainder.clone();
-    childSelector.prepend(parser.nesting());
-    childRule.selector = childSelector.toString();
-    childRule.cleanRaws();
-
-    // Nest the child rule inside the parent rule.
-    parentRule.append(childRule);
-    // Add the parent rule to the tree.
-    secondRule.after(parentRule);
-
-    // Remove the original rules.
-    firstRule.remove();
-    secondRule.remove();
-    return;
+    return {
+      type: "second",
+      parentSelector: prefix,
+      childSelector: secondRemainder,
+    }
   }
+
   // Treat nesting the first rule inside the second analogously.
   if (secondRemainder.length == 0) {
-    // Create the parent rule as a copy of the second rule.
-    let parentRule = secondRule.clone();
+    return {
+      type: "first",
+      parentSelector: prefix,
+      childSelector: firstRemainder,
+    }
+  }
 
-    // Create the child rule as a copy of the first rule.
-    let childRule = firstRule.clone();
-    // Construct the selector of the child rule from the remainder.
-    let childSelector = firstRemainder.clone();
-    childSelector.prepend(parser.nesting());
-    childRule.selector = childSelector.toString();
-    childRule.cleanRaws();
+  // If there is a common prefix between the two selectors, but it's shorter
+  // than either of them, they could still be nested.
+  if (prefix.length > 0) {
+    return {
+      type: "both",
+      parentSelector: prefix,
+      firstChildSelector: firstRemainder,
+      secondChildSelector: secondRemainder,
+    }
+  }
 
-    // Nest the child rule inside the parent rule.
-    parentRule.prepend(childRule);
-    // Add the parent rule to the tree.
-    secondRule.after(parentRule);
+  return { type: "none" }
+}
 
-    // Remove the original rules.
-    firstRule.remove();
-    secondRule.remove();
-    return;
+function shiftDown(atRule: AtRule): boolean {
+  let rule = onlyChild(atRule);
+
+  if (!rule || rule.type != "rule") {
+    return false;
+  }
+
+  // Remove the rule from the tree, leaving its children as direct children of
+  // the at-rule.
+  rule.replaceWith(rule.nodes);
+
+  // Insert a copy of the rule as the parent of the at-rule.
+  let clonedRule = rule.clone();
+  atRule.after(clonedRule);
+  clonedRule.append(atRule);
+  
+  // Fix the formatting.
+  clonedRule.cleanRaws();
+  atRule.raws.semicolon = rule.raws.semicolon;
+  atRule.raws.before = rule.raws.before;
+
+  return true;
+}
+
+function collapseAtRules(firstAtRule: AtRule, secondAtRule: AtRule): boolean {
+  if (firstAtRule.name != secondAtRule.name) {
+    return false;
+  }
+  if (firstAtRule.params != secondAtRule.params) {
+    return false;
+  }
+  secondAtRule.prepend(firstAtRule.clone().nodes);
+  firstAtRule.remove();
+  return true;
+}
+
+function nestRules(firstRule: Rule, secondRule: Rule): boolean {
+  let nestingDecision = decideNesting(firstRule, secondRule)
+
+  let parentRule: Rule
+  let childRule: Rule
+  let childSelector: Selector
+
+  switch (nestingDecision.type) {
+    case 'none':
+      // The rules cannot be nested; stop here.
+      return false;
+    case 'second':
+      // Create the parent rule as a copy of the first rule.
+      parentRule = firstRule.clone();
+
+      // Create the child rule as a copy of the second rule.
+      childRule = secondRule.clone();
+      // Construct the selector of the child rule from the remainder.
+      childSelector = nestingDecision.childSelector;
+      childSelector.prepend(parser.nesting());
+      childRule.selector = childSelector.toString();
+      childRule.cleanRaws();
+
+      // Nest the child rule inside the parent rule.
+      parentRule.append(childRule);
+      // Add the parent rule to the tree.
+      secondRule.after(parentRule);
+
+      // Remove the original rules.
+      firstRule.remove();
+      secondRule.remove();
+
+      return true;
+    case 'first':
+      // Create the parent rule as a copy of the second rule.
+      parentRule = secondRule.clone();
+
+      // Create the child rule as a copy of the first rule.
+      childRule = firstRule.clone();
+      // Construct the selector of the child rule from the remainder.
+      childSelector = nestingDecision.childSelector;
+      childSelector.prepend(parser.nesting());
+      childRule.selector = childSelector.toString();
+      childRule.cleanRaws();
+
+      // Nest the child rule inside the parent rule.
+      parentRule.prepend(childRule);
+      // Add the parent rule to the tree.
+      secondRule.after(parentRule);
+
+      // Remove the original rules.
+      firstRule.remove();
+      secondRule.remove();
+
+      return true;
+    case 'both':
+      // The rules can both be nested inside a selector that is their common
+      // prefix; ignore this.
+      return false;
+    case 'collapse':
+      firstRule.append(secondRule.nodes);
+      secondRule.remove();
+      return true;
   }
 }
+
+function nestWithPrevious(node: AtRule | Rule): boolean {
+  // Check the rule or at-rule against the previous one for nesting.
+  let previous = node.prev();
+  while (previous && previous.type == "comment") {
+    previous = previous.prev();
+  }
+  if (previous) {
+    if (previous.type == "atrule" && node.type == "atrule") {
+      return collapseAtRules(previous, node);
+    }
+    if (previous.type == "rule" && node.type == "rule") {
+      return nestRules(previous, node);
+    }
+  }
+  return false;
+}
+
+function nestWithNext(node: AtRule | Rule): boolean {
+  // Check the rule or at-rule against the next one for nesting.
+  let next = node.next();
+  while (next && next.type == "comment") {
+    next = next.next();
+  }
+  if (next) {
+    if (next.type == "atrule" && node.type == "atrule") {
+      return collapseAtRules(node, next);
+    }
+    if (next.type == "rule" && node.type == "rule") {
+      return nestRules(node, next);
+    }
+  }
+  return false;
+}
+
+export type PluginOptions = {};
 
 const creator: PluginCreator<PluginOptions> = (opts?: PluginOptions) => {
   const options = Object.assign(
@@ -189,12 +363,11 @@ const creator: PluginCreator<PluginOptions> = (opts?: PluginOptions) => {
 
   return {
     postcssPlugin: 'postcss-add-nesting',
-    Rule(rule, helper) {
-      // Check every rule against the previous one for nesting.
-      let previous = rule.prev();
-      if (previous && previous.type == "rule") {
-        nest(previous, rule)
-      }
+    AtRule(atRule) {
+      nestWithNext(atRule) || nestWithPrevious(atRule) || shiftDown(atRule);
+    },
+    Rule(rule) {
+      nestWithNext(rule) || nestWithPrevious(rule);
     }
   };
 }

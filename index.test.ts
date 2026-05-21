@@ -587,7 +587,7 @@ describe('The postcss-add-nesting plugin', () => {
         });
 
         describe('if the selectors are identical', () => {
-          it('collapses @media rules and the inner rules', async () => {
+          it('collapses @media rules and the inner rules, and nests the resulting @media rule', async () => {
             await run(
               `@media (hover: hover) {
                 button:hover {
@@ -599,8 +599,8 @@ describe('The postcss-add-nesting plugin', () => {
                   border-color: white;
                 }
               }`,
-              `@media (hover: hover) {
-                button:hover {
+              `button:hover {
+                @media (hover: hover) {
                   border-radius: 4px;
                   border-color: white;
                 }
@@ -757,7 +757,7 @@ describe('The postcss-add-nesting plugin', () => {
       });
 
       describe('if the selectors are identical', () => {
-        it('collapses the rules', async () => {
+        it('collapses the rules and nests the at-rule', async () => {
           await run(
             `@layer base {
               em {
@@ -767,8 +767,8 @@ describe('The postcss-add-nesting plugin', () => {
                 font-size: 0.9em;
               }
             }`,
-            `@layer base {
-              em {
+            `em {
+              @layer base {
                 font-weight: 200;
                 font-size: 0.9em;
               }
@@ -778,7 +778,7 @@ describe('The postcss-add-nesting plugin', () => {
       });
 
       describe('if the second rule can be nested inside the first', () => {
-        it('nests the rule', async () => {
+        it('nests the rule, then nests the at-rule', async () => {
           await run(
             `@supports selector(h2 > p) {
               h2 > p {
@@ -788,8 +788,9 @@ describe('The postcss-add-nesting plugin', () => {
                 font-size: 20px;
               }
             }`,
-            `@supports selector(h2 > p) {
-              h2 > p {
+            // This example feels less natural than having @supports outside.
+            `h2 > p {
+              @supports selector(h2 > p) {
                 font-size: 10px;
                 &::first-letter {
                   font-size: 20px;
@@ -801,7 +802,7 @@ describe('The postcss-add-nesting plugin', () => {
       });
 
       describe('if the first rule can be nested inside the second', () => {
-        it('nests the rule', async () => {
+        it('nests the rule, then nests the at-rule', async () => {
           await run(
             `@supports font-tech(variations) {
               q strong {
@@ -811,8 +812,9 @@ describe('The postcss-add-nesting plugin', () => {
                 font-family: Roboto
               }
             }`,
-            `@supports font-tech(variations) {
-              q {
+            // Unlike the previous, this example does not feel too wrong.
+            `q {
+              @supports font-tech(variations) {
                 & strong {
                   font-weight: 820;
                 }
