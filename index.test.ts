@@ -3,8 +3,9 @@ import { describe, expect, it } from '@jest/globals';
 import dedent from 'dedent';
 
 import plugin from './';
+import type { PluginOptions } from './';
 
-async function run(input: string, output: string, opts = {}) {
+async function run(input: string, output: string, opts: PluginOptions = {}) {
   input = dedent(input)
   output = dedent(output)
   let result = await postcss([plugin(opts)]).process(input, { from: undefined });
