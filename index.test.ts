@@ -6,8 +6,8 @@ import plugin from './';
 import type { PluginOptions } from './';
 
 async function run(input: string, output: string, opts: PluginOptions = {}) {
-  input = dedent(input)
-  output = dedent(output)
+  input = dedent(input);
+  output = dedent(output);
   let result = await postcss([plugin(opts)]).process(input, { from: undefined });
   expect(result.css).toEqual(output);
   expect(result.warnings().length).toEqual(0);
