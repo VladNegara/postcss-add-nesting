@@ -9,8 +9,8 @@ async function run(input: string, output: string, opts: PluginOptions = {}) {
   input = dedent(input);
   output = dedent(output);
   let result = await postcss([plugin(opts)]).process(input, { from: undefined });
-  expect(result.css).toEqual(output);
-  expect(result.warnings().length).toEqual(0);
+  expect(result.css).toBe(output);
+  expect(result.warnings().length).toBe(0);
 }
 
 
