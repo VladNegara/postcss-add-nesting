@@ -1,6 +1,6 @@
 {
   "name": "postcss-add-nesting",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "PostCSS plugin that converts rules to use the nesting syntax.",
   "keywords": [
     "postcss",
